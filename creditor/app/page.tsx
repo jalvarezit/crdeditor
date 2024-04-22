@@ -41,7 +41,7 @@ export default async function Home() {
       >
         <Grid item xs={1}>
           {Object.entries(domains).map(([domain, names]) => (
-            <Accordion>
+            <Accordion key={domain}>
               <AccordionSummary
                 expandIcon={<ArrowDownwardIcon />}
                 aria-controls="panel1-content"
@@ -56,7 +56,7 @@ export default async function Home() {
                   aria-labelledby="nested-list-subheader"
         >
                   {names.map(name => (
-                    <Link href={`/crd/${name}.${domain}`}>
+                    <Link key={name} href={`/crd/${name}.${domain}`}>
                       <ListItemButton>
                         <ListItemText primary={name} />
                       </ListItemButton>
