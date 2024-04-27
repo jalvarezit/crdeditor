@@ -1,78 +1,154 @@
 "use client";
-import React from 'react';
+import React, { useState } from 'react';
 import Form from '@rjsf/mui';
 import validator from '@rjsf/validator-ajv8';
-import { CopyBlock, nord } from "react-code-blocks";
-import { Grid } from '@mui/material';
+import { Alert, AlertColor, Backdrop, Box, Button, CircularProgress, Grid, Snackbar, Tab, Tabs } from '@mui/material';
+import { IChangeEvent } from '@rjsf/core';
+import CodeIcon from '@mui/icons-material/Code';
+import EditNoteIcon from '@mui/icons-material/EditNote';
+import { CodeBlock, nord } from 'react-code-blocks';
 import yaml from 'js-yaml';
+import { getSubmitButtonOptions, SubmitButtonProps } from '@rjsf/utils';
 
-export default function CRDForm({ kind, apiVersion, schema }: { kind: string, apiVersion: string, schema: any }) {
-    const [formData, setFormData] = React.useState(null);
+enum MenuPage {
+    Form = 0,
+    CodeBlock = 1,
+}
 
-    const customizedSchema = Object.assign({}, schema);
+function SubmitButton(props: SubmitButtonProps) {
+    const { uiSchema } = props;
+    const { norender } = getSubmitButtonOptions(uiSchema);
 
-    customizedSchema.properties.apiVersion = {
+    return (
+        <Box textAlign='center'>
+            <Button variant='contained' type='submit'>
+                Submit
+            </Button>
+        </Box>
+    );
+}
 
-        const: apiVersion,
-        default: apiVersion,
-        type: "string",
-        readOnly: true
-    }
-
-    customizedSchema.properties.kind = {
-        const: kind,
-        default: kind,
-        type: "string",
-        readOnly: true
-    }
-
-    customizedSchema.properties.metadata = {
-        type: "object",
-        properties: {
-            name: {
-                type: "string",
-                title: "Name"
-            },
-            annotations: {
-                type: 'object',
-                additionalProperties: { type: 'string' }
-            },
-            labels: {
-                type: 'object',
-                additionalProperties: { type: 'string' }
-            },
+async function submitCrd(endpoint: string, crd: any): Promise<Response> {
+    return await fetch(endpoint, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
         },
-        required: ["name"]
+        body: JSON.stringify(crd),
+    });
+
+}
+
+export default function CRDForm({ schema, submitUrl }: { schema: any, submitUrl: string }) {
+
+    const [menu, setMenu] = useState(MenuPage.Form);
+    const [formData, setFormData] = useState(null);
+    const [openBackdrop, setOpenBackdrop] = useState(false);
+    const [snackbarState, setSnackbarState] = useState({
+        open: false,
+        message: 'Sample message',
+        severity: 'success' as AlertColor,
+    });
+
+    async function handleSubmit(e: IChangeEvent) {
+
+        setOpenBackdrop(true);
+
+        if (e.errors.length > 0) {
+            setSnackbarState({
+                open: true,
+                message: 'Error validating form',
+                severity: 'error',
+            });
+            console.log(e.errors)
+            return
+        }
+
+        const resp = await submitCrd(submitUrl, e.formData)
+
+        if (!resp.ok) {
+            setSnackbarState({
+                open: true,
+                message: 'Error creating CRD',
+                severity: 'error',
+            });
+        } else {
+            setSnackbarState({
+                open: true,
+                message: 'CRD created successfully',
+                severity: 'success',
+            });
+
+        }
+
+        setOpenBackdrop(false);
     }
 
-    delete customizedSchema.properties.status;
+
+    let menuComponent;
+
+    if (menu === MenuPage.CodeBlock) {
+        menuComponent = <CodeBlock text={yaml.dump(formData)} language="yaml" theme={nord} />;
+    } else {
+        menuComponent = <Form
+            schema={schema}
+            formData={formData}
+            validator={validator}
+            onChange={(e) => setFormData(e.formData)}
+            onSubmit={handleSubmit}
+            templates={{ ButtonTemplates: { SubmitButton } }}
+        />;
+    }
+
     return (
         <>
-            <Grid container spacing={2}>
-                <Grid item xs={6}>
+            <Box
+                display="flex"
+                justifyContent="center"
+                alignItems="center"
+            >
 
-                    <Form
-                        schema={schema}
-                        validator={validator}
-                        onChange={(e) => {
-                            console.log(e.formData)
-                            return setFormData(e.formData)
-                        }}
-                        onSubmit={(e) => {
-                            console.log(e.formData)
-                        }}
-                    />
-                </Grid>
-                <Grid item xs={6}>
-                    <CopyBlock
-                        text={yaml.dump(formData)}
-                        language="yaml"
-                        theme={nord}
-                        codeBlock={false}
-                    />
-                </Grid>
-            </Grid>
+                <Grid
+                    container
+                    spacing={0}
+                    direction="column"
+                    alignItems="center"
+                    justifyContent="center"
+                    xs={12}
+                    sm={9}
+                    md={4}
+                >
+                    <Grid item xs={12}>
 
+                        <Tabs aria-label="tabs" value={menu.valueOf()}>
+                            <Tab icon={< EditNoteIcon />} onClick={() => setMenu(MenuPage.Form)} aria-label="form" />
+                            <Tab icon={<CodeIcon />} onClick={() => setMenu(MenuPage.CodeBlock)} aria-label="code" />
+                        </Tabs>
+                    </Grid>
+                    <Grid item xs={6}>
+                        {menuComponent}
+                    </Grid>
+
+                </Grid>
+            </Box>
+            <Backdrop
+                sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+                open={openBackdrop}
+            >
+                <CircularProgress color="inherit" />
+            </Backdrop>
+            <Snackbar
+                open={snackbarState.open}
+                key={'bottom' + 'left'}
+            >
+                <Alert
+                    severity={snackbarState.severity}
+                    variant="filled"
+                    sx={{ width: '100%' }}
+                >
+                    {snackbarState.message}
+                </Alert>
+            </Snackbar>
         </>
 
     );

@@ -9,26 +9,37 @@ kc.loadFromDefault();
 
 const k8sExtensionsV1Api = kc.makeApiClient(ApiextensionsV1Api);
 
-export type DomainMap = {
-  [domain: string]: string[];
+export type CRDGroupMap = {
+  [group: string]: {
+    plural: string;
+    apiVersion: string;
+  }[];
 };
 
 export default async function Home() {
 
   const response = await k8sExtensionsV1Api.listCustomResourceDefinition();
-  const completeNames = response.body.items.map(crd => crd?.metadata?.name);
+  let groups: CRDGroupMap = {}
 
-  let domains: DomainMap = {}
+  const completeNames = response.body.items.map(crd => {
+    console.log(crd?.spec.versions)
+    return crd?.metadata?.name
+  });
 
-  for (const name of completeNames) {
+  for (const crd of response.body.items) {
+
+    const name = crd?.metadata?.name;
     if (name === undefined) continue;
-    const [simplifiedName, ...rest] = name.split(".");
-    const domain = rest.join('.');
-    domains[domain] = [...domains[domain] || [], simplifiedName]
+
+    const [plural, ...rest] = name.split(".");
+    const group = rest.join('.');
+
+    for (const version of crd.spec.versions) {
+      groups[group] = [...groups[group] || [], { plural: plural, apiVersion: version.name }]
+    }
   }
 
-  console.log(domains)
-
+  console.log(groups)
   return (
     <>
       <Grid
@@ -40,7 +51,7 @@ export default async function Home() {
         sx={{ minHeight: '100vh' }}
       >
         <Grid item xs={1}>
-          {Object.entries(domains).map(([domain, names]) => (
+          {Object.entries(groups).map(([domain, groups]) => (
             <Accordion key={domain}>
               <AccordionSummary
                 expandIcon={<ArrowDownwardIcon />}
@@ -54,11 +65,11 @@ export default async function Home() {
                   sx={{ width: '100%', maxWidth: 360, bgcolor: 'background.paper' }}
                   component="nav"
                   aria-labelledby="nested-list-subheader"
-        >
-                  {names.map(name => (
-                    <Link key={name} href={`/crd/${name}.${domain}`}>
+                >
+                  {groups.map(crd => (
+                    <Link key={crd.plural + "/" + crd.apiVersion} href={`/crd/${crd.apiVersion}/${crd.plural}.${domain}`}>
                       <ListItemButton>
-                        <ListItemText primary={name} />
+                        <ListItemText primary={crd.plural + "/" + crd.apiVersion} />
                       </ListItemButton>
                     </Link>
                   ))}

@@ -1,15 +1,34 @@
 import { KubeConfig, ApiextensionsV1Api } from '@kubernetes/client-node';
 
+const kc = new KubeConfig();
+kc.loadFromDefault();
 
-export const dynamic = 'force-dynamic' // defaults to auto
-export async function POST(request: Request) {
-    const res = await request.json()
+const k8sExtensionsV1Api = kc.makeApiClient(ApiextensionsV1Api);
 
-    console.log(res)
+export async function GET(_: Request, { params }: { params: { name: string } }) {
 
-    return new Response('Hello from Next.js!', {
-        headers: {
-            'Content-Type': 'application/json',
-        },
-    });
+    try {
+        const response = await k8sExtensionsV1Api.listCustomResourceDefinition();
+        const completeNames = response.body.items.map(crd => crd?.metadata?.name);
+
+        return new Response(JSON.stringify(completeNames), {
+            headers: {
+                'content-type': 'application/json',
+            },
+        });
+
+    } catch (error) {
+
+        if (error instanceof Error) {
+
+            return new Response(error.message, {
+                status: 500,
+            });
+        }
+
+        return new Response('Unknown error', {
+            status: 500,
+        });
+    }
+
 }
