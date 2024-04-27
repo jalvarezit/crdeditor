@@ -60,7 +60,6 @@ export default function CRDForm({ schema, submitUrl }: { schema: any, submitUrl:
                 message: 'Error validating form',
                 severity: 'error',
             });
-            console.log(e.errors)
             return
         }
 

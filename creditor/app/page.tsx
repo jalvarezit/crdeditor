@@ -21,11 +21,6 @@ export default async function Home() {
   const response = await k8sExtensionsV1Api.listCustomResourceDefinition();
   let groups: CRDGroupMap = {}
 
-  const completeNames = response.body.items.map(crd => {
-    console.log(crd?.spec.versions)
-    return crd?.metadata?.name
-  });
-
   for (const crd of response.body.items) {
 
     const name = crd?.metadata?.name;
@@ -39,7 +34,6 @@ export default async function Home() {
     }
   }
 
-  console.log(groups)
   return (
     <>
       <Grid
