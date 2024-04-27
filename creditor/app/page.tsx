@@ -1,8 +1,11 @@
+export const dynamic = 'force-dynamic'
+
 import React from 'react';
 import { KubeConfig, ApiextensionsV1Api } from '@kubernetes/client-node';
 import { ListItemButton, ListItemText, List, Grid, Accordion, AccordionSummary, AccordionDetails, Typography } from '@mui/material';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 
 const kc = new KubeConfig();
 kc.loadFromDefault();
@@ -18,7 +21,14 @@ export type CRDGroupMap = {
 
 export default async function Home() {
 
-  const response = await k8sExtensionsV1Api.listCustomResourceDefinition();
+  let response: any;
+
+  try {
+    response = await k8sExtensionsV1Api.listCustomResourceDefinition();
+  } catch (e) {
+    return notFound();
+  }
+
   let groups: CRDGroupMap = {}
 
   for (const crd of response.body.items) {

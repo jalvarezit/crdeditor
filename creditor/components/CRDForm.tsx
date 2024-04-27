@@ -8,16 +8,14 @@ import CodeIcon from '@mui/icons-material/Code';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import { CodeBlock, nord } from 'react-code-blocks';
 import yaml from 'js-yaml';
-import { getSubmitButtonOptions, SubmitButtonProps } from '@rjsf/utils';
+import { SubmitButtonProps } from '@rjsf/utils';
 
 enum MenuPage {
     Form = 0,
     CodeBlock = 1,
 }
 
-function SubmitButton(props: SubmitButtonProps) {
-    const { uiSchema } = props;
-    const { norender } = getSubmitButtonOptions(uiSchema);
+function SubmitButton(_props: SubmitButtonProps) {
 
     return (
         <Box textAlign='center'>

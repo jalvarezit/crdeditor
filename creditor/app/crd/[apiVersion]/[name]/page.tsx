@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic'
+
+import { notFound } from 'next/navigation'
 import CRDForm from '@/components/CRDForm';
 import { KubeConfig, ApiextensionsV1Api, V1CustomResourceDefinition } from '@kubernetes/client-node';
 
@@ -30,7 +33,8 @@ function customizeSchema(schema: any, apiVersion: string, kind: string) {
         properties: {
             name: {
                 type: "string",
-                title: "Name"
+                title: "Name",
+                pattern: "^[a-z0-9][-a-z0-9]{0,251}[a-z0-9]$"
             },
             annotations: {
                 type: 'object',
@@ -38,7 +42,9 @@ function customizeSchema(schema: any, apiVersion: string, kind: string) {
             },
             labels: {
                 type: 'object',
-                additionalProperties: { type: 'string' }
+                patternProperties: {
+                    "^[a-z0-9][-a-z0-9]{0,61}[a-z0-9]$": { type: 'string' }
+                }
             },
         },
         required: ["name"]
@@ -54,23 +60,21 @@ function customizeSchema(schema: any, apiVersion: string, kind: string) {
 
 export default async function Page({ params }: { params: { apiVersion: string, name: string } }) {
 
-    let request: any;
+    let response: any;
 
     try {
-
-        request = await k8sExtensionsV1Api.readCustomResourceDefinition(params.name)
+        response = await k8sExtensionsV1Api.readCustomResourceDefinition(params.name)
     } catch (e) {
-        console.error(e)
+        return notFound();
     }
 
-    const crd: V1CustomResourceDefinition = request.body;
+    const crd: V1CustomResourceDefinition = response.body;
 
     // Get the schema for the version that matches the apiVersion
-
     const filteredVersions = crd.spec.versions.filter(version => version.name === params.apiVersion);
 
     if (filteredVersions.length !== 1) {
-        throw new Error(`Version ${params.apiVersion} not found for CRD ${params.name}`)
+        return notFound();
     }
 
     const customizedSchema = customizeSchema(
