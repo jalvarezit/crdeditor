@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: creditor
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: creditor
+    template:
+        metadata:
+            labels:
+                app: creditor
+        spec:
+            serviceAccountName: creditor
+            containers:
+            - name: creditor
+              image: ghcr.io/jalvarezit/creditor:main
+              ports:
+                - containerPort: 8080
+              env:
+                - name: DEBUG
+                  value: "creditor:*"
+                - name: HOSTNAME
+                  value: "0.0.0.0"
+                - name: PORT
+                  value: "8080"
