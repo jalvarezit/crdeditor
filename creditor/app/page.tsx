@@ -7,6 +7,9 @@ import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+const Debug = require('debug')
+const log = Debug('creditor:react:home');
+
 const kc = new KubeConfig();
 kc.loadFromDefault();
 
@@ -21,11 +24,14 @@ export type CRDGroupMap = {
 
 export default async function Home() {
 
+  log("Rendering home page")
   let response: any;
 
   try {
+    log("Fetching CRDs")
     response = await k8sExtensionsV1Api.listCustomResourceDefinition();
   } catch (e) {
+    log("Error fetching CRDs", e)
     return notFound();
   }
 
